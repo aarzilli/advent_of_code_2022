@@ -3,6 +3,7 @@ package main
 import (
 	. "aoc/util"
 	"fmt"
+	"os"
 	"sort"
 )
 
@@ -15,22 +16,16 @@ func pln(any ...interface{}) {
 }
 
 func main() {
-	groups := Input("01.txt", "\n\n", true)
-	pln(len(groups))
-	max := 0
+	groups := Input(os.Args[1], "\n\n", true)
 	elves := []int{}
 	for _, group := range groups {
 		tot := 0
 		for _, n := range Vatoi(Spac(group, "\n", -1)) {
 			tot += n
 		}
-		if tot >= max {
-			max = tot
-		}
 		elves = append(elves, tot)
 	}
-	Sol(max)
 	sort.Ints(elves)
-	pln(elves)
+	Sol(elves[len(elves)-1])
 	Sol(elves[len(elves)-1] + elves[len(elves)-2] + elves[len(elves)-3])
 }

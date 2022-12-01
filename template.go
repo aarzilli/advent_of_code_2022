@@ -3,6 +3,7 @@ package main
 import (
 	. "aoc/util"
 	"fmt"
+	"os"
 )
 
 func pf(fmtstr string, any ...interface{}) {
@@ -14,6 +15,6 @@ func pln(any ...interface{}) {
 }
 
 func main() {
-	lines := Input("XX.txt", "\n", true)
+	lines := Input(os.Args[1], "\n", true)
 	pf("len %d\n", len(lines))
 }
