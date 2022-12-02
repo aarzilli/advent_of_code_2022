@@ -19,11 +19,7 @@ func main() {
 	groups := Input(os.Args[1], "\n\n", true)
 	elves := []int{}
 	for _, group := range groups {
-		tot := 0
-		for _, n := range Vatoi(Spac(group, "\n", -1)) {
-			tot += n
-		}
-		elves = append(elves, tot)
+		elves = append(elves, Sum(Vatoi(Spac(group, "\n", -1))))
 	}
 	sort.Ints(elves)
 	Sol(elves[len(elves)-1])

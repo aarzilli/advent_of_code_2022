@@ -213,3 +213,11 @@ func OneKey[K comparable, V any](m map[K]V) K {
 	}
 	panic("blah")
 }
+
+func Sum(v []int) int {
+	tot := 0
+	for i := range v {
+		tot += v[i]
+	}
+	return tot
+}
