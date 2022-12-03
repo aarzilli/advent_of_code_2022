@@ -221,3 +221,32 @@ func Sum(v []int) int {
 	}
 	return tot
 }
+
+func Histo[T comparable](v []T) map[T]int {
+	m := make(map[T]int)
+	for i := range v {
+		m[v[i]]++
+	}
+	return m
+}
+
+func Intersect[K comparable, V1, V2 any](m1 map[K]V1, m2 map[K]V2) map[K]bool {
+	r := make(map[K]bool)
+	for k := range m1 {
+		if _, ok := m2[k]; ok {
+			r[k] = true
+		}
+	}
+	return r
+}
+
+func Union[K comparable, V1, V2 any](m1 map[K]V1, m2 map[K]V2) map[K]bool {
+	r := make(map[K]bool)
+	for k := range m1 {
+		r[k] = true
+	}
+	for k := range m2 {
+		r[k] = true
+	}
+	return r
+}
