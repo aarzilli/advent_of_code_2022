@@ -19,10 +19,7 @@ func contains(a, b []int) bool {
 }
 
 func overlaps(a, b []int) bool {
-	if contains(a, b) || contains(b, a) {
-		return true
-	}
-	return contains1(a, b[0]) || contains1(a, b[1])
+	return contains1(a, b[0]) || contains1(a, b[1]) || contains1(b, a[0]) || contains1(b, a[1])
 }
 
 func contains1(a []int, n int) bool {
@@ -31,7 +28,6 @@ func contains1(a []int, n int) bool {
 
 func main() {
 	lines := Input(os.Args[1], "\n", true)
-	pf("len %d\n", len(lines))
 	cnt := 0
 	cnt2 := 0
 	for _, line := range lines {
@@ -39,8 +35,7 @@ func main() {
 		if contains(v[:2], v[2:]) || contains(v[2:], v[:2]) {
 			cnt++
 		}
-		if overlaps(v[:2], v[2:]) || overlaps(v[2:], v[:2]) {
-			pf("overlap %s\n", line)
+		if overlaps(v[:2], v[2:]) {
 			cnt2++
 		}
 	}
