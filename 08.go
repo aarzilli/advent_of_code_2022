@@ -14,64 +14,40 @@ func pln(any ...interface{}) {
 	fmt.Println(any...)
 }
 
-func visible(v []int, vis []bool, s, d int) {
+func visible(M [][]int, vis [][]bool, si, sj, di, dj int) {
 	h := -1
-	for i := s; i >= 0 && i < len(v); i += d {
-		if v[i] > h {
-			h = v[i]
-			vis[i] = true
-		}
-	}
-}
-
-func visibleCol(M [][]int, i int, vis [][]bool, s, d int) {
-	h := -1
-	for j := s; j >= 0 && j < len(M); j += d {
-		if M[j][i] > h {
-			h = M[j][i]
-			vis[j][i] = true
+	for i, j := si, sj; i >= 0 && i < len(M) && j >= 0 && j < len(M[i]); i, j = i+di, j+dj {
+		if M[i][j] > h {
+			h = M[i][j]
+			vis[i][j] = true
 		}
 	}
 }
 
 func score(M [][]int, si, sj int) int {
-	// up
-	upscore := si
-	for i := si - 1; i >= 0; i-- {
-		if M[i][sj] >= M[si][sj] {
-			upscore = si - i
-			break
+	v := func(di, dj int) int {
+		cnt := 0
+		for i, j := si+di, sj+dj; i >= 0 && i < len(M) && j >= 0 && j < len(M[i]); i, j = i+di, j+dj {
+			cnt++
+			if M[i][j] >= M[si][sj] {
+				break
+			}
 		}
+		return cnt
 	}
+
+	// up
+	upscore := v(-1, 0)
 
 	// left
-	leftscore := sj
-	for j := sj - 1; j >= 0; j-- {
-		if M[si][j] >= M[si][sj] {
-			leftscore = sj - j
-			break
-		}
-	}
+	leftscore := v(0, -1)
 
 	// right
-	rightscore := len(M[si]) - sj - 1
-	for j := sj + 1; j < len(M[si]); j++ {
-		if M[si][j] >= M[si][sj] {
-			rightscore = j - sj
-			break
-		}
-	}
+	rightscore := v(0, +1)
 
 	// down
-	downscore := len(M) - si - 1
-	for i := si + 1; i < len(M); i++ {
-		if M[i][sj] >= M[si][sj] {
-			downscore = i - si
-			break
-		}
-	}
+	downscore := v(+1, 0)
 
-	//pln(upscore, leftscore, rightscore, downscore)
 	return upscore * leftscore * rightscore * downscore
 }
 
@@ -83,19 +59,16 @@ func main() {
 		M[i] = Vatoi(Spac(line, "", -1))
 		vis[i] = make([]bool, len(M[i]))
 	}
-	pln(M)
 
 	for i := range M {
-		visible(M[i], vis[i], 0, +1)
-		visible(M[i], vis[i], len(M[i])-1, -1)
+		visible(M, vis, i, 0, 0, +1)
+		visible(M, vis, i, len(M[i])-1, 0, -1)
 	}
 
 	for j := range M[0] {
-		visibleCol(M, j, vis, 0, +1)
-		visibleCol(M, j, vis, len(M)-1, -1)
+		visible(M, vis, 0, j, +1, 0)
+		visible(M, vis, len(M)-1, j, -1, 0)
 	}
-
-	pln(vis)
 
 	cnt := 0
 	for i := range M {
