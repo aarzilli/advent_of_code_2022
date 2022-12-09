@@ -21,27 +21,16 @@ type point struct {
 var head point
 var tails [9]point
 
-func dist(a, b point) int {
-	return Abs(a.i-b.i) + Abs(a.j-b.j)
-}
-
-func neighbors8(a point) []point {
-	r := []point{}
+func touching(a, b point) bool {
 	for di := -1; di <= 1; di++ {
 		for dj := -1; dj <= 1; dj++ {
 			if di == 0 && dj == 0 {
 				continue
 			}
-			r = append(r, point{a.i + di, a.j + dj})
-		}
-	}
-	return r
-}
-
-func touching(a, b point) bool {
-	for _, p := range neighbors8(a) {
-		if p == b {
-			return true
+			p := point{a.i + di, a.j + dj}
+			if p == b {
+				return true
+			}
 		}
 	}
 	return false
@@ -83,36 +72,12 @@ func advance(head, tail *point) {
 var seen = map[point]bool{}
 var seen2 = map[point]bool{}
 
-func vis() {
-	for i := -4; i <= 0; i++ {
-	jloop:
-		for j := 0; j <= 6; j++ {
-			p := point{i, j}
-			if p == head {
-				pf("H")
-				continue jloop
-			}
-			for i := range tails {
-				if tails[i] == p {
-					pf("%d", i+1)
-					continue jloop
-				}
-			}
-			pf(".")
-		}
-		pf("\n")
-	}
-	pf("\n")
-}
-
 func main() {
 	lines := Input(os.Args[1], "\n", true)
-	pf("len %d\n", len(lines))
 
 	for _, line := range lines {
 		v := Spac(line, " ", -1)
 		n := Atoi(v[1])
-		pln(line)
 		for k := 0; k < n; k++ {
 			switch v[0] {
 			case "R":
@@ -135,8 +100,6 @@ func main() {
 
 			seen[tails[0]] = true
 			seen2[tails[8]] = true
-
-			vis()
 		}
 	}
 
