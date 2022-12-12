@@ -49,48 +49,36 @@ func conv(ch byte) byte {
 	return ch
 }
 
-func search(start point, cond func(ch, ch2 byte) bool, finish func(point) bool) {
-	fringe := map[point]int{start: 0}   // nodes discovered but not visited (start at node 0 with distance 0)
-	seen := map[point]bool{start: true} // nodes already visited (we know the minimum distance of those)
-
-	lastmin := 0
+func search(start point, impossible func(ch, ch2 byte) bool, finish func(point) bool) {
+	djk := NewDijkstra[point](start)
 
 	cnt := 0
 
-	for len(fringe) > 0 {
-		cur := minimum(fringe, lastmin)
-
+	var cur point
+	for djk.PopTo(&cur) {
 		if cnt%1000 == 0 {
-			fmt.Printf("fringe %d (min dist %d)\n", len(fringe), fringe[cur])
+			//pf("fringe %d (min dist %d)\n", djk.Len(), djk.Dist[cur])
 		}
 		cnt++
 
 		if finish(cur) {
-			pln(cur, fringe[cur])
-			Sol(fringe[cur])
+			//pln(cur, djk.Dist[cur], djk.PathTo(cur))
+			Sol(djk.Dist[cur])
 			return
 		}
 
-		distcur := fringe[cur]
-		lastmin = distcur
-		delete(fringe, cur)
-		seen[cur] = true
-
 		maybeadd := func(nb point) {
-			if seen[nb] {
-				return
-			}
 			if nb.i < 0 || nb.i >= len(M) || nb.j < 0 || nb.j >= len(M[nb.i]) {
 				return
 			}
 			ch := conv(M[cur.i][cur.j])
 			ch2 := conv(M[nb.i][nb.j])
-			if cond(ch, ch2) {
+			if impossible(ch, ch2) {
 				return
 			}
-			d, ok := fringe[nb]
-			if !ok || distcur+1 < d {
-				fringe[nb] = distcur + 1
+			if ok, nbdist := djk.Add(cur, nb, 1); ok {
+				_ = nbdist
+				//pln("from", cur, "to", nb, "dist", nbdist)
 			}
 		}
 

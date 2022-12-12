@@ -250,3 +250,9 @@ func Union[K comparable, V1, V2 any](m1 map[K]V1, m2 map[K]V2) map[K]bool {
 	}
 	return r
 }
+
+func Reverse[T any](v []T) {
+	for i := 0; i < len(v)/2; i++ {
+		v[i], v[len(v)-i-1] = v[len(v)-i-1], v[i]
+	}
+}
