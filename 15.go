@@ -21,43 +21,24 @@ type sensor struct {
 
 var S []sensor
 
-func filled(y, minx, maxx int) int {
-	cnt := 0
-	for x := minx; x <= maxx; x++ {
-		inrange := false
-		for i, s := range S {
-			_ = i
-			if s.inrange(x, y) {
-				//pf("%d,%d covered by sensor %d (%d,%d) range %d (dist: %d)\n", x, y, i, s.x, s.y, dist(&s, s.bx, s.by), dist(&s, x, y))
-				//pf("\t%d\n", s.rng() - Abs(s.y - y))
+func dist(s *sensor, x, y int) int {
+	return Abs(s.x-x) + Abs(s.y-y)
+}
 
-				inrange = true
-				break
-			}
-		}
-		if inrange {
-			for _, s := range S {
-				if s.by == y && s.bx == x {
-					inrange = false
-					break
-				}
-			}
-		}
-		if inrange {
-			cnt++
-		}
-	}
-	pln()
-	return cnt
+func (s *sensor) inrange(x, y int) bool {
+	return dist(s, x, y) <= dist(s, s.bx, s.by)
+}
+
+func (s *sensor) rng() int {
+	return dist(s, s.bx, s.by)
 }
 
 func (s *sensor) fullcoverage(y int) (min, max int) {
 	rng := s.rng() - Abs(s.y-y)
-	//pf("sensor %d has range %d at row y=%d covers x=%d..%d\n", 0, rng, y, s.x - rng, s.x + rng)
 	return s.x - rng, s.x + rng
 }
 
-func filled2(y, minx, maxx int) int {
+func filled(y, minx, maxx int) int {
 	cnt := 0
 	x := minx
 	for {
@@ -90,11 +71,10 @@ func filled2(y, minx, maxx int) int {
 			}
 		}
 	}
-	pln("found:", cnt-len(beacons))
-	return cnt
+	return cnt - len(beacons)
 }
 
-func searchy(y, minx, maxx int) bool {
+func searchy(y, minx, maxx int) (int, bool) {
 	x := minx
 	for {
 		if x > maxx {
@@ -114,30 +94,24 @@ func searchy(y, minx, maxx int) bool {
 			_, b := inrange.fullcoverage(y)
 			x = b + 1
 		} else {
-			pln(x, y)
-			Sol(x*4000000 + y)
-			x++
-			return true
+			return x*4000000 + y, true
 		}
 	}
-	return false
+	return 0, false
 }
 
-func dist(s *sensor, x, y int) int {
-	return Abs(s.x-x) + Abs(s.y-y)
-}
-
-func (s *sensor) inrange(x, y int) bool {
-	return dist(s, x, y) <= dist(s, s.bx, s.by)
-}
-
-func (s *sensor) rng() int {
-	return dist(s, s.bx, s.by)
+func part2(sz int) int {
+	for y := 0; y <= sz; y++ {
+		sol, ok := searchy(y, 0, sz)
+		if ok {
+			return sol
+		}
+	}
+	panic("not found")
 }
 
 func main() {
 	lines := Input(os.Args[1], "\n", true)
-	pf("len %d\n", len(lines))
 	first := true
 	minx, maxx := 0, 0
 	for _, line := range lines {
@@ -159,27 +133,15 @@ func main() {
 			maxrng = s.rng()
 		}
 	}
-	pln("minmax", minx-maxrng, maxx+maxrng)
-	pln(S)
 	if len(lines) < 20 {
+		Expect(26)
 		Sol(filled(10, minx-maxrng, maxx+maxrng))
-		filled2(10, minx-maxrng, maxx+maxrng)
-		for y := 0; y <= 20; y++ {
-			if searchy(y, 0, 20) {
-				break
-			}
-		}
+		Expect(56000011)
+		Sol(part2(20))
 	} else {
+		Expect(5525990)
 		Sol(filled(2000000, minx-maxrng, maxx+maxrng))
-		filled2(2000000, minx-maxrng, maxx+maxrng)
-		for y := 0; y <= 4000000; y++ {
-			if searchy(y, 0, 4000000) {
-				break
-			}
-		}
+		Expect(11756174628223)
+		Sol(part2(4000000))
 	}
-
 }
-
-// 3985370
-// 3985369
