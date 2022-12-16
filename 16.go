@@ -4,6 +4,7 @@ import (
 	. "aoc/util"
 	"fmt"
 	"os"
+	_ "sort"
 )
 
 func pf(fmtstr string, any ...interface{}) {
@@ -22,133 +23,72 @@ var maxrate int
 var shortestpath = map[string]map[string]int{}
 
 type possib struct {
-	es       [2]entity
-	opened   [55]bool
-	bestrate int
-	time     int
+	es     [2]entity
+	opened uint64
+	tot    int
+	time   int
 }
 
 type entity struct {
 	curnode string
 	tgtnode string
 	dist    int
-	steps   int
 }
 
-func (p *possib) flow() {
-	for i := range p.opened {
-		if !p.opened[i] {
-			continue
+func (p *possib) flow(m int) {
+	currate := 0
+	for n := range rate {
+		if p.isopen(n) {
+			currate += rate[n]
 		}
-		p.bestrate += rate[numtoname[i]]
 	}
-	p.time++
+	p.tot += m * currate
+	p.time += m
 }
 
 func (p *possib) isopen(pos string) bool {
-	return p.opened[nametonum[pos]]
+	return (p.opened>>nametonum[pos])&0x1 != 0
 }
 
-func (p *possib) sign() possib {
-	var s possib = *p
-	if s.es[0].curnode > s.es[1].curnode {
-		s.es[0], s.es[1] = s.es[1], s.es[0]
+func (p *possib) setopened(pos string) {
+	p.opened = p.opened | (1 << nametonum[pos])
+}
+
+func updatefordist(cur *possib) {
+	for i := range cur.es {
+		if cur.es[i].dist == 0 {
+			cur.es[i].curnode = cur.es[i].tgtnode
+			cur.setopened(cur.es[i].curnode)
+		}
 	}
-	return s
+}
+
+func checksol(cur possib) {
+	if cur.tot > bestresult {
+		//pln("solution", cur)
+		bestresult = cur.tot
+	}
 }
 
 var seen = map[possib]bool{}
 var bestresult int
 
-/*func search1(cur possib, time int) {
+func search1(cur possib) {
+	const maxtime = 30
+	updatefordist(&cur)
+
+	if cur.time == maxtime {
+		checksol(cur)
+		return
+	}
+	if cur.tot+(maxtime-cur.time)*maxrate < bestresult {
+		return
+	}
+
 	if seen[cur] {
 		return
 	}
 	seen[cur] = true
-	if time == 0 {
-		if cur.bestrate > bestresult {
-			pln(cur)
-			bestresult = cur.bestrate
-		}
-		return
-	}
-	if rate[cur.node] > 0 && !cur.isopen(cur.node) {
-		search1(cur.open(cur.node), time-1)
-	}
-	for _, n := range next[cur.node] {
-		if !cur.isopen(n) && rate[n] > 0 && n != cur.node {
-			search1(cur.moveto(n), time-1)
-		}
-	}
-	for _, n := range next[cur.node] {
-		if n == cur.node {
-			continue
-		}
-		if cur.isopen(n) || rate[n] == 0 {
-			search1(cur.moveto(n), time-1)
-		}
-	}
-}*/
-
-func updatefordist(cur *possib) {
-	for i := range cur.es {
-		if cur.es[i].dist == 0 {
-			cur.es[i].steps = 0
-			cur.es[i].curnode = cur.es[i].tgtnode
-			cur.opened[nametonum[cur.es[i].curnode]] = true
-		}
-	}
-}
-
-/*func reschedule(cur *possib, tgts []string) {
-	if cur.es[0].dist == 0 || cur.es[1].dist == 0 || cur.es[0].tgtnode != cur.es[1].tgtnode {
-		return
-	}
-
-	if cur.es[0].dist > cur.es[1].dist {
-		cur.es[0], cur.es[1] = cur.es[1], cur.es[0]
-	}
-
-	for _, tgt := range tgts {
-		d := shortestpath[cur.es[1].curnode][tgt] + 1
-		if d >= cur.es[1].steps {
-
-		}
-	}
-}*/
-
-func checksol(cur possib) {
-	if cur.bestrate > bestresult {
-		pln("solution", cur)
-		bestresult = cur.bestrate
-	}
-}
-
-func search2better(cur possib, time int) {
-	//pln("search2better", cur, time)
-	/*if seen[cur] {
-		return
-	}
-	seen[cur] = true*/
-	if 26-time != cur.time {
-		panic("corrupted")
-	}
-
-	updatefordist(&cur)
-
-	if time == 0 {
-		checksol(cur)
-		return
-	}
-	if cur.bestrate+time*maxrate < bestresult {
-		return
-	}
-
-	/*s := cur.sign()
-	if seen[s] {
-		return
-	}
-	seen[s] = true*/
 
 	// search all possible openable nodes
 	tgts := []string{}
@@ -160,19 +100,72 @@ func search2better(cur possib, time int) {
 	}
 
 	if len(tgts) == 0 {
-		// no openable nodes, just run the simulation to the end
-		pf("no openable nodes at time %d so far %d (%d %d)\n", 26-time, cur.bestrate, cur.es[0].dist, cur.es[1].dist)
 		var p possib
 		p = cur
-		t := time
-		for t > 0 {
-			p.flow()
-			p.es[0].dist--
-			p.es[1].dist--
-			t--
+		p.flow(maxtime - cur.time)
+		search1(p)
+		return
+	}
+
+	var ps []possib
+	if cur.es[0].dist != 0 {
+		panic("unexpected")
+	}
+	for _, tgt := range tgts {
+		var p possib = cur
+		p.es[0].tgtnode = tgt
+		p.es[0].dist = shortestpath[p.es[0].curnode][p.es[0].tgtnode] + 1
+		ps = append(ps, p)
+	}
+
+	for _, p := range ps {
+		m := p.es[0].dist
+		if p.time+m > maxtime {
+			p.flow(maxtime - p.time)
+			checksol(p)
+			continue
 		}
-		pf("finished %d\n", p.bestrate)
-		search2better(p, 0)
+		p.flow(m)
+		p.es[0].dist -= m
+		search1(p)
+	}
+}
+
+func search2(cur possib) {
+	const maxtime = 26
+	updatefordist(&cur)
+
+	if cur.time == maxtime {
+		checksol(cur)
+		return
+	}
+	if cur.tot+(maxtime-cur.time)*maxrate < bestresult {
+		return
+	}
+
+	if cur.es[0].curnode > cur.es[1].curnode {
+		cur.es[0], cur.es[1] = cur.es[1], cur.es[0]
+	}
+
+	if seen[cur] {
+		return
+	}
+	seen[cur] = true
+
+	// search all possible openable nodes
+	tgts := []string{}
+	for n := range rate {
+		if rate[n] == 0 || cur.isopen(n) {
+			continue
+		}
+		tgts = append(tgts, n)
+	}
+
+	if len(tgts) == 0 {
+		var p possib
+		p = cur
+		p.flow(maxtime - cur.time)
+		search2(p)
 		return
 	}
 
@@ -182,10 +175,6 @@ func search2better(cur possib, time int) {
 			var p possib = cur
 			p.es[0].tgtnode = tgt
 			p.es[0].dist = shortestpath[p.es[0].curnode][p.es[0].tgtnode] + 1
-			if p.es[0].dist == 1 {
-				panic("bad")
-			}
-			//reschedule(&p, tgts)
 			ps = append(ps, p)
 		}
 	} else if cur.es[1].dist == 0 && cur.es[0].dist > 0 {
@@ -193,10 +182,6 @@ func search2better(cur possib, time int) {
 			var p possib = cur
 			p.es[1].tgtnode = tgt
 			p.es[1].dist = shortestpath[p.es[1].curnode][p.es[1].tgtnode] + 1
-			if p.es[1].dist == 1 {
-				panic("bad")
-			}
-			//reschedule(&p, tgts)
 			ps = append(ps, p)
 		}
 	} else if cur.es[0].dist == 0 && cur.es[1].dist == 0 {
@@ -210,42 +195,22 @@ func search2better(cur possib, time int) {
 				p.es[0].dist = shortestpath[p.es[0].curnode][p.es[0].tgtnode] + 1
 				p.es[1].tgtnode = tgt1
 				p.es[1].dist = shortestpath[p.es[1].curnode][p.es[1].tgtnode] + 1
-				if p.es[0].dist == 0 || p.es[1].dist == 1 {
-					panic("bad")
-				}
 				ps = append(ps, p)
 			}
 		}
-	} else {
-		pf("%d %d\n", cur.es[0].dist, cur.es[1].dist)
-		panic("wtf?")
 	}
 
 	for _, p := range ps {
-		if p.time+Min([]int{p.es[0].dist, p.es[1].dist}) > 26 {
-			t := time
-			for t > 0 {
-				p.flow()
-				p.es[0].dist--
-				p.es[1].dist--
-				t--
-			}
+		m := Min([]int{p.es[0].dist, p.es[1].dist})
+		if p.time+m > maxtime {
+			p.flow(maxtime - p.time)
 			checksol(p)
 			continue
 		}
-		t := time
-		for {
-			p.flow()
-			t--
-			p.es[0].dist--
-			p.es[0].steps++
-			p.es[1].dist--
-			p.es[1].steps++
-			if p.es[0].dist == 0 || p.es[1].dist == 0 {
-				search2better(p, t)
-				break
-			}
-		}
+		p.flow(m)
+		p.es[0].dist -= m
+		p.es[1].dist -= m
+		search2(p)
 	}
 }
 
@@ -280,7 +245,6 @@ func searchpath(start, end string) int {
 
 func main() {
 	lines := Input(os.Args[1], "\n", true)
-	pf("len %d\n", len(lines))
 	for i, line := range lines {
 		r := Getints(line, false)[0]
 		v := Spac(line, " ", -1)
@@ -302,13 +266,10 @@ func main() {
 		maxrate += r
 	}
 
-	//search(possib{ node: "AA" }, 30)
-	//search2(possib{ node: "AA", node1: "AA" }, 26)
 	shortestpath["AA"] = make(map[string]int)
 	for n := range rate {
 		if rate[n] > 0 {
 			shortestpath["AA"][n] = searchpath("AA", n)
-			pf("%s -> %s %d\n", "AA", n, shortestpath["AA"][n])
 		}
 	}
 
@@ -327,24 +288,25 @@ func main() {
 				continue
 			}
 			shortestpath[n1][n2] = searchpath(n1, n2)
-			pf("%s -> %s %d\n", n1, n2, shortestpath[n1][n2])
 		}
 	}
 
 	start := possib{es: [2]entity{entity{curnode: "AA", tgtnode: "AA", dist: 0}, entity{curnode: "AA", tgtnode: "AA", dist: 0}}}
 	for n := range rate {
 		if rate[n] == 0 {
-			start.opened[nametonum[n]] = true
+			start.setopened(n)
 		}
 	}
 
-	search2better(start, 26)
-}
+	pln("==== PART 1 ====")
 
-/*
-2847 too low
-2902 too low
-4293 too high
-2865 bad result
-2871 bad result
-*/
+	search1(start)
+	Sol(bestresult)
+
+	pln("==== PART 2 ====")
+
+	seen = map[possib]bool{}
+	bestresult = 0
+	search2(start)
+	Sol(bestresult)
+}
