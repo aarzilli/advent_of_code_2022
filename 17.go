@@ -134,23 +134,9 @@ func drop() bool {
 	return true
 }
 
-func numrocks() int {
-	tot := 0
-	for i := range M {
-		for j := range M[i] {
-			if M[i][j] != 0 {
-				tot++
-			}
-		}
-	}
-	return tot
-}
-
 func main() {
 	lines := Input(os.Args[1], "\n", true)
 	input := []byte(lines[0])
-	//pln(input)
-	_ = input
 
 	for i := range M {
 		M[i] = make([]byte, 7)
@@ -164,13 +150,6 @@ func main() {
 
 	pln(len(input))
 
-	/*c := 1000000000000/1750
-	pf("tot/len = %d\n", c)
-	h := 2798 + 2796 * (c-1)
-	pf("starting height h = %d remaining to drop = %d\n", h, 1000000000000 % 1750)
-
-	os.Exit(0)*/
-
 	target := 1000000000000
 
 	var initialOffset int
@@ -178,6 +157,8 @@ func main() {
 	var initialOffsetN int
 	var incrementN int
 	var hoff = 0
+
+	// does not work on example
 
 	for {
 		if k == 0 {
@@ -194,28 +175,12 @@ func main() {
 				n2 := c*incrementN + initialOffsetN
 				pf("during iteration %d n = %d\n", c, n2)
 				n = n2
-				hoff = 2796 * (c - 1)
+				hoff = increment * (c - 1)
 
 			default:
 				// nothing
 			}
-			pf("at kind=%d k=%d (tot=%d) height=%d n=%d t/len = %d\n", kind, k, t, len(M)-highest(), n, t/len(input))
-			render('@')
-			showlimit()
-			render(0)
 		}
-
-		/*if t >= len(input) && t < 2*len(input) {
-			hv[k] = (len(M) - highest()) - 2798
-			pf("k = %d hv = %d\n", k, hv[k])
-		} else if t > len(input) {
-
-			h := hv[k] + 2798 + 2796 * (t/len(input) - 1)
-			pf("k = %d hv = %d h = %d height = %d tot = %d\n", k, hv[k], h, len(M) - highest(), t)
-			if h != len(M)-highest() {
-				panic("error")
-			}
-		}*/
 
 		run(input[k])
 		k = (k + 1) % len(input)
@@ -228,6 +193,9 @@ func main() {
 			kind = (kind + 1) % 5
 			n++
 			h := len(M) - highest()
+			if n == 2022 {
+				Sol(h + hoff)
+			}
 			if n == target {
 				Sol(h + hoff)
 				break
@@ -235,11 +203,3 @@ func main() {
 		}
 	}
 }
-
-// prima iterazione 2798, ogni iterazione successiva: 2796
-// ogni iterazione 1750 pezzi vengono rilasciati
-
-// target = 30000 height = 47929
-
-// 1597714284518
-// 1597714285698
