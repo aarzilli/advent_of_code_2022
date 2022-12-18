@@ -180,6 +180,10 @@ func main() {
 			default:
 				// nothing
 			}
+			
+			render('@')
+			showlimit()
+			render(0)
 		}
 
 		run(input[k])
