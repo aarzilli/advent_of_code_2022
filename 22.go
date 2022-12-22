@@ -102,29 +102,6 @@ func advance1(M [][]byte, dir int, pos point) point {
 	return next
 }
 
-func show(M [][]byte, pos point, dir int) {
-	pln("MAPSTART")
-	for i := range M {
-		for j := range M[i] {
-			if pos.i == i && pos.j == j {
-				switch dir {
-				case 0:
-					pf(">")
-				case 1:
-					pf("v")
-				case 2:
-					pf("<")
-				case 3:
-					pf("^")
-				}
-			} else {
-				pf("%c", M[i][j])
-			}
-		}
-		pln()
-	}
-}
-
 func face(i, j int) (face int, reali, realj int) {
 	const sz = 50
 	if i < sz {
@@ -186,14 +163,6 @@ func intoface(f int, facei, facej int) point {
 	}
 }
 
-func assertface(pos point, wantface int) {
-	f, _, _ := face(pos.i, pos.j)
-	if f != wantface {
-		pf("want %d got %d\n", wantface, f)
-		panic("wrong")
-	}
-}
-
 const (
 	RIGHT = iota
 	DOWN
@@ -214,20 +183,16 @@ func advance2(M [][]byte, pos point, dir int) (point, int) {
 			case 2:
 				next = intoface(5, facesz-facei-1, -1)
 				nextdir = LEFT
-				assertface(next, 5)
 			case 3:
 				next = intoface(2, -1, facei)
 				nextdir = UP
-				assertface(next, 2)
 
 			case 5:
 				next = intoface(2, facesz-facei-1, -1)
 				nextdir = LEFT
-				assertface(next, 2)
 			case 6:
 				next = intoface(5, -1, facei)
 				nextdir = UP
-				assertface(next, 5)
 			default:
 				panic("blah")
 			}
@@ -240,15 +205,12 @@ func advance2(M [][]byte, pos point, dir int) (point, int) {
 			case 2:
 				next = intoface(3, facej, -1)
 				nextdir = LEFT
-				assertface(next, 3)
 			case 5:
 				next = intoface(6, facej, -1)
 				nextdir = LEFT
-				assertface(next, 6)
 			case 6:
 				next = intoface(2, 0, facej)
 				nextdir = DOWN
-				assertface(next, 2)
 			default:
 				panic("blah")
 			}
@@ -261,19 +223,15 @@ func advance2(M [][]byte, pos point, dir int) (point, int) {
 			case 1:
 				next = intoface(4, facesz-facei-1, 0)
 				nextdir = RIGHT
-				assertface(next, 4)
 			case 3:
 				next = intoface(4, 0, facei)
 				nextdir = DOWN
-				assertface(next, 4)
 			case 4:
 				next = intoface(1, facesz-facei-1, 0)
 				nextdir = RIGHT
-				assertface(next, 1)
 			case 6:
 				next = intoface(1, 0, facei)
 				nextdir = DOWN
-				assertface(next, 1)
 			default:
 				panic("blah")
 			}
@@ -288,15 +246,12 @@ func advance2(M [][]byte, pos point, dir int) (point, int) {
 			case 1:
 				next = intoface(6, facej, 0)
 				nextdir = RIGHT
-				assertface(next, 6)
 			case 2:
 				next = intoface(6, facesz-1, facej)
 				nextdir = UP
-				assertface(next, 6)
 			case 4:
 				next = intoface(3, facej, 0)
 				nextdir = RIGHT
-				assertface(next, 3)
 			default:
 				panic("blah")
 			}
@@ -307,25 +262,36 @@ func advance2(M [][]byte, pos point, dir int) (point, int) {
 	return next, nextdir
 }
 
-func dirstr(dir int) string {
-	switch dir {
-	case 0:
-		return "RIGHT"
-	case 1:
-		return "DOWN"
-	case 2:
-		return "LEFT"
-	case 3:
-		return "UP"
-	default:
-		panic("blah")
+type instrIter struct {
+	pathstr string
+	steps   int
+	rot     byte
+}
+
+func (it *instrIter) next() bool {
+	if len(it.pathstr) <= 0 {
+		return false
 	}
+	end := 0
+	for end < len(it.pathstr) {
+		if it.pathstr[end] < '0' || it.pathstr[end] > '9' {
+			break
+		}
+		end++
+	}
+
+	it.steps = Atoi(it.pathstr[:end])
+	it.pathstr = it.pathstr[end:]
+
+	it.rot = byte(0)
+	if len(it.pathstr) > 0 {
+		it.rot = it.pathstr[0]
+		it.pathstr = it.pathstr[1:]
+	}
+	return true
 }
 
 func main() {
-	/*
-		lines := Input(os.Args[1], "\n", true)
-		pf("len %d\n", len(lines))*/
 	buf, err := ioutil.ReadFile(os.Args[1])
 	Must(err)
 	lines := strings.SplitN(string(buf), "\n", -1)
@@ -336,29 +302,15 @@ func main() {
 
 	M = M[:len(M)-1]
 	pathstr := string(M[len(M)-1])
-	startpathstr := pathstr
-	//pln(pathstr)
 	M = M[:len(M)-2]
 
 	pos := startj(M, 0)
 	dir := 0
 
-	//pln(pos)
+	it := instrIter{pathstr, 0, 0}
 
-	for len(pathstr) > 0 {
-		end := 0
-		for end < len(pathstr) {
-			if pathstr[end] < '0' || pathstr[end] > '9' {
-				break
-			}
-			end++
-		}
-
-		n := Atoi(pathstr[:end])
-		pathstr = pathstr[end:]
-		//pln(n)
-
-		for k := 0; k < n; k++ {
+	for it.next() {
+		for k := 0; k < it.steps; k++ {
 			next := advance1(M, dir, pos)
 
 			if M[next.i][next.j] == '#' {
@@ -369,67 +321,35 @@ func main() {
 			}
 
 			pos = next
-
-			//show(M, pos, dir)
 		}
 
-		//pln(pos)
-
-		if len(pathstr) > 0 {
-			//pln(string(pathstr[0]))
-			switch pathstr[0] {
-			case 'L':
-				dir = (dir - 1)
-				if dir == -1 {
-					dir = 3
-				}
-			case 'R':
-				dir = (dir + 1) % 4
-			default:
-				panic("blah")
+		switch it.rot {
+		case 'L':
+			dir = (dir - 1)
+			if dir == -1 {
+				dir = 3
 			}
-			pathstr = pathstr[1:]
+		case 'R':
+			dir = (dir + 1) % 4
+		case 0:
+			// end
+		default:
+			panic("blah")
 		}
 	}
 
-	//Sol(1000 * (pos.i+1) + 4 * (pos.j+1) + dir)
+	Sol(1000*(pos.i+1) + 4*(pos.j+1) + dir)
 
 	if len(M) < 50 {
 		os.Exit(1)
 	}
 
-	/*for i := range M {
-		for j := range M[i] {
-			if M[i][j] == ' ' {
-				pf(" ")
-				continue
-			}
-			f, _, _ := face(i, j)
-			pf("%d", f)
-		}
-		pln()
-	}*/
-
 	pos = startj(M, 0)
 	dir = 0
-	pathstr = startpathstr
+	it = instrIter{pathstr, 0, 0}
 
-	for len(pathstr) > 0 {
-		end := 0
-		for end < len(pathstr) {
-			if pathstr[end] < '0' || pathstr[end] > '9' {
-				break
-			}
-			end++
-		}
-
-		n := Atoi(pathstr[:end])
-		pathstr = pathstr[end:]
-
-		for k := 0; k < n; k++ {
-			face, _, _ := face(pos.i, pos.j)
-			//pf("%d %d %s (%d)\n", pos.j+1, pos.i+1, dirstr(dir), face)
-
+	for it.next() {
+		for k := 0; k < it.steps; k++ {
 			next, nextdir := advance2(M, pos, dir)
 
 			if M[next.i][next.j] == '#' {
@@ -443,26 +363,20 @@ func main() {
 			dir = nextdir
 		}
 
-		if len(pathstr) > 0 {
-			//pln(string(pathstr[0]))
-			switch pathstr[0] {
-			case 'L':
-				dir = (dir - 1)
-				if dir == -1 {
-					dir = 3
-				}
-			case 'R':
-				dir = (dir + 1) % 4
-			default:
-				panic("blah")
+		switch it.rot {
+		case 'L':
+			dir = (dir - 1)
+			if dir == -1 {
+				dir = 3
 			}
-			pathstr = pathstr[1:]
+		case 'R':
+			dir = (dir + 1) % 4
+		case 0:
+			// end
+		default:
+			panic("blah")
 		}
 	}
 
 	Sol(1000*(pos.i+1) + 4*(pos.j+1) + dir)
 }
-
-// 1204
-// 35594
-// 124018
