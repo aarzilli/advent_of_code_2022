@@ -83,6 +83,7 @@ func (djk *Dijkstra[T]) Add(cur, nb T, dist int) (bool, int) {
 	curdist := djk.Dist[cur]
 	cd, ok := djk.h.m[nb]
 	if !ok || curdist+dist < cd {
+		// TODO: remove old version of nb from the heap
 		heap.Push(&djk.h, heapNode[T]{nb, curdist + dist})
 		djk.Parent[nb] = cur
 		return true, curdist + dist
