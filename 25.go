@@ -4,7 +4,6 @@ import (
 	. "aoc/util"
 	"fmt"
 	"os"
-	"strconv"
 	_ "strings"
 )
 
@@ -16,15 +15,7 @@ func pln(any ...interface{}) {
 	fmt.Println(any...)
 }
 
-var conv = map[int][2]int{
-	0: [2]int{0, 0},
-	1: [2]int{0, 1},
-	2: [2]int{0, 2},
-	3: [2]int{1, -2},
-	4: [2]int{1, -1},
-}
-
-func convnum(line string) int {
+func snafu2int(line string) int {
 	r := 0
 	for i := range line {
 		var d int
@@ -42,75 +33,47 @@ func convnum(line string) int {
 	return r
 }
 
+func int2snafu(tot int) string {
+	carry := 0
+	snafu := []byte{}
+	for tot > 0 {
+		switch d := (tot % 5) + carry; d {
+		case 0, 1, 2:
+			snafu = append(snafu, byte(d+'0'))
+			carry = 0
+		case 3:
+			snafu = append(snafu, '=')
+			carry = 1
+		case 4:
+			snafu = append(snafu, '-')
+			carry = 1
+		case 5:
+			snafu = append(snafu, '0')
+			carry = 1
+		}
+		tot /= 5
+	}
+	if carry == 1 {
+		snafu = append(snafu, '1')
+	}
+	Reverse(snafu)
+	return string(snafu)
+}
+
 func main() {
 	lines := Input(os.Args[1], "\n", true)
 	pf("len %d\n", len(lines))
 	tot := 0
 	for _, line := range lines {
-		r := convnum(line)
+		r := snafu2int(line)
 		pf("%s\t%d\n", line, r)
+		if int2snafu(r) != line {
+			panic("conv")
+		}
 		tot += r
 	}
 	pln(tot)
-
-	pf("base 5 (inv):\n")
-	weirdo := []int{}
-	i := 0
-	for tot > 0 {
-		pf("%d %d\n", tot%5, conv[tot%5])
-		if i < len(weirdo) {
-			weirdo[i] += conv[tot%5][1]
-			weirdo = append(weirdo, conv[tot%5][0])
-		} else {
-			weirdo = append(weirdo, conv[tot%5][1], conv[tot%5][0])
-
-		}
-		pf("-> %d\n", weirdo)
-		tot /= 5
-		i++
-	}
-	pln()
-
-	carry := 0
-	for i := range weirdo {
-		weirdo[i] += carry
-		carry = 0
-		switch weirdo[i] {
-		case 0, 1, 2, -1, -2:
-			// ok
-		case 3:
-			carry = 1
-			weirdo[i] = -2
-		default:
-			panic("bad")
-		}
-	}
-
-	Reverse(weirdo)
-	if weirdo[0] == 0 {
-		weirdo = weirdo[1:]
-	}
-	pf("%d\n", weirdo)
-	w := ""
-	for i := range weirdo {
-		switch weirdo[i] {
-		case -2:
-			w += "="
-		case -1:
-			w += "-"
-		case 0, 1, 2:
-			w += strconv.Itoa(weirdo[i])
-		default:
-			pf("%d\n", weirdo[i])
-			panic("badnumber")
-		}
-	}
-	pf("%q %d\n", w, convnum(w))
-	//q := strings.Join(weirdo, "")
-	//_ = q
-	/*pf("%q %d\n", q, convnum(q))
-	pf("%d\n", convnum("1-="))*/
-	//pln(convnum("1=2"))
+	w := int2snafu(tot)
 	Sol(w)
 }
 
