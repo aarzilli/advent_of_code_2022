@@ -291,6 +291,8 @@ func (it *instrIter) next() bool {
 	return true
 }
 
+var dirstr = map[int]string{RIGHT: "right", DOWN: "down", LEFT: "left", UP: "up"}
+
 func main() {
 	buf, err := ioutil.ReadFile(os.Args[1])
 	Must(err)
@@ -350,6 +352,8 @@ func main() {
 
 	for it.next() {
 		for k := 0; k < it.steps; k++ {
+			//f, _, _ := face(pos.i, pos.j)
+			//pln(f, pos.i, pos.j, dirstr[dir])
 			next, nextdir := advance2(M, pos, dir)
 
 			if M[next.i][next.j] == '#' {
