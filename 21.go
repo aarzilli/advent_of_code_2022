@@ -4,6 +4,8 @@ import (
 	. "aoc/util"
 	"fmt"
 	"os"
+
+	"github.com/aclements/go-z3/z3"
 )
 
 func pf(fmtstr string, any ...interface{}) {
@@ -87,6 +89,35 @@ func (n *node) simplify() (int, string) {
 	return 0, fmt.Sprintf("(%s %s %s)", astr, n.op, bstr)
 }
 
+var humn z3.Int
+
+func (n *node) toz3(ctx *z3.Context) z3.Value {
+	if n.name == "humn" {
+		humn = ctx.IntConst("h")
+		return humn
+	}
+	if n.op == "" {
+		return ctx.FromInt(int64(n.val), ctx.IntSort())
+	}
+
+	a := nodes[n.args[0]].toz3(ctx).(z3.Int)
+	b := nodes[n.args[1]].toz3(ctx).(z3.Int)
+
+	switch n.op {
+	case "+":
+		return a.Add(b)
+	case "-":
+		return a.Sub(b)
+	case "/":
+		return a.Div(b)
+	case "*":
+		return a.Mul(b)
+	case "=":
+		return a.Eq(b)
+	}
+	panic("unreachable")
+}
+
 func main() {
 	lines := Input(os.Args[1], "\n", true)
 	for _, line := range lines {
@@ -113,6 +144,12 @@ func main() {
 	Sol(nodes["root"].value())
 
 	nodes["root"].op = "="
-	_, str := nodes["root"].simplify()
-	pln(str)
+	ctx := z3.NewContext(z3.NewContextConfig())
+	sv := z3.NewSolver(ctx)
+	sv.Assert(nodes["root"].toz3(ctx).(z3.Bool))
+	_, err := sv.Check()
+	Must(err)
+	val, islit, ok := sv.Model().Eval(humn, true).(z3.Int).AsInt64()
+	pln(val, islit, ok)
+	Sol(val)
 }
